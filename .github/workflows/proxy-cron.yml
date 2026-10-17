@@ -1,0 +1,22 @@
+# Chạy vòng bảo trì proxy mỗi 30 phút.
+# (Vercel Hobby chỉ cho cron 1 lần/ngày nên dùng GitHub Actions cho tần suất cao.)
+# Cần cấu hình trong repo Settings:
+#   - Secrets > Actions > New secret: CRON_SECRET  (giống CRON_SECRET trên Vercel)
+#   - Variables > Actions > New variable: APP_URL (vd. https://musescrape.vercel.app)
+name: proxy-cron
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: # cho phép bấm chạy tay
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Trigger harvest cycle
+        run: |
+          curl -sf --max-time 280 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL }}/api/cron" | head -c 2000
