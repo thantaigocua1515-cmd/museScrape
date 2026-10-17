@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   }
   if (!kvConfigured()) {
     return NextResponse.json(
-      { error: "Upstash Redis chưa được cấu hình (thiếu UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN)" },
+      { error: "Upstash Redis chưa được cấu hình (thiếu UPSTASH_REDIS_REST_URL/TOKEN hoặc KV_REST_API_URL/TOKEN)" },
       { status: 503 }
     );
   }

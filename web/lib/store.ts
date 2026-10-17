@@ -1,5 +1,7 @@
 // Lớp lưu trữ trên Upstash Redis (qua Vercel Marketplace integration).
-// Env tự động inject khi connect integration: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+// Env tự động inject khi connect integration. Tùy cách tạo database mà tên biến
+// có thể là kiểu mới (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN) hoặc
+// kiểu cũ của Vercel KV (KV_REST_API_URL / KV_REST_API_TOKEN) — code nhận cả hai.
 //
 // Model:
 //   ph:meta            hash: key "{proto}:{ip}:{port}" -> JSON metadata
@@ -37,13 +39,25 @@ export interface ProxyMeta {
 }
 
 let _redis: Redis | null = null;
+
+/** Đọc URL + token Redis, hỗ trợ cả 2 kiểu tên biến (mới UPSTASH_* và cũ KV_*). */
+export function redisEnv(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
 function redis(): Redis {
-  if (!_redis) _redis = Redis.fromEnv();
+  if (!_redis) {
+    const cfg = redisEnv();
+    if (!cfg) throw new Error("Upstash Redis chưa được cấu hình");
+    _redis = new Redis({ url: cfg.url, token: cfg.token });
+  }
   return _redis;
 }
 
 export function kvConfigured(): boolean {
-  return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  return redisEnv() !== null;
 }
 
 export function pendingMember(p: { protocol: string; ip: string; port: number; source: string }): string {

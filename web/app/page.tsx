@@ -26,7 +26,7 @@ function SetupHelp() {
         <h3>⚠️ Chưa cấu hình Upstash Redis</h3>
         <ol>
           <li>Vercel Dashboard → project → <b>Storage</b> → <b>Marketplace</b> → tìm <b>Upstash Redis</b> → Add integration</li>
-          <li>Connect vào project này (env <code>UPSTASH_REDIS_REST_URL</code> / <code>UPSTASH_REDIS_REST_TOKEN</code> tự thêm)</li>
+          <li>Connect vào project này (env <code>UPSTASH_REDIS_REST_URL</code>/<code>TOKEN</code> hoặc <code>KV_REST_API_URL</code>/<code>TOKEN</code> tự thêm)</li>
           <li>Thêm env <code>CRON_SECRET</code> (chuỗi ngẫu nhiên) trong <b>Settings → Environment Variables</b></li>
           <li>Redeploy, rồi gọi <code>GET /api/cron</code> với header <code>Authorization: Bearer &lt;CRON_SECRET&gt;</code> để chạy vòng đầu</li>
         </ol>
