@@ -1,8 +1,42 @@
 # 🌐 Proxy Harvester
 
 Hệ thống tự động thu thập proxy miễn phí từ các nguồn công khai, kiểm tra chất lượng
-(ping, latency, quốc gia, độ ẩn danh), lưu vào database và **giám sát 24/7**:
-proxy chết sẽ bị xoá, proxy mới được bổ sung liên tục.
+(ping, latency, quốc gia, độ ẩn danh), lưu vào database và **giám sát liên tục**:
+proxy chết sẽ bị xoá, proxy mới được bổ sung liên tục. Kèm **JSON API** cho các dự án khác dùng.
+
+Repo có **2 bản**:
+
+| | `web/` (khuyên dùng) | Python CLI (root) |
+|---|---|---|
+| Chạy ở | Vercel (serverless) | VPS / máy cá nhân |
+| Database | Upstash Redis | SQLite |
+| Lịch chạy | GitHub Actions mỗi 30 phút + Vercel Cron dự phòng | systemd / cron |
+| API | `GET /api/proxies?...` | `python api.py` |
+
+## Bản Web (Vercel) — bắt đầu ở đây
+
+Xem hướng dẫn đầy đủ trong [`web/README.md`](web/README.md). Tóm tắt:
+
+1. Import repo vào Vercel, đặt **Root Directory** = `web`
+2. Thêm **Upstash Redis** trong Vercel Dashboard → Storage → Marketplace, connect vào project
+3. Thêm env `CRON_SECRET` (bắt buộc), `API_KEY` (tuỳ chọn, để bảo vệ API)
+4. Deploy → cấu hình GitHub Actions (Secrets: `CRON_SECRET`, Variables: `APP_URL`)
+   để chạy vòng bảo trì mỗi 30 phút
+5. Kích hoạt vòng đầu: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<app>/api/cron`
+
+API dùng cho các dự án khác:
+
+```bash
+curl "https://<app>/api/proxies?protocol=http&country=VN&limit=20"
+curl "https://<app>/api/proxies?protocol=socks5&limit=10"
+curl "https://<app>/api/stats"
+```
+
+## Bản Python CLI (VPS)
+
+Xem tiếp bên dưới.
+
+---
 
 ## Chức năng
 
