@@ -47,6 +47,18 @@ export function redisEnv(): { url: string; token: string } | null {
   return url && token ? { url, token } : null;
 }
 
+/** Parse metadata proxy. @upstash/redis tự deserialize JSON khi đọc, nên giá
+ *  trị trả về có thể đã là object chứ không phải string — nhận cả hai. */
+function parseMeta(raw: unknown): ProxyMeta | null {
+  try {
+    if (!raw) return null;
+    const m = (typeof raw === "string" ? JSON.parse(raw) : raw) as ProxyMeta;
+    return m && typeof m === "object" && typeof m.ip === "string" ? m : null;
+  } catch {
+    return null;
+  }
+}
+
 function redis(): Redis {
   if (!_redis) {
     const cfg = redisEnv();
@@ -109,8 +121,8 @@ export async function removePending(members: string[]): Promise<void> {
 export async function saveAlive(r: CheckResult, geo: GeoInfo | null): Promise<void> {
   const key = proxyKey(r);
   const now = new Date().toISOString();
-  const prevRaw = (await redis().hget(META, key)) as string | null;
-  const prev = prevRaw ? (JSON.parse(prevRaw) as ProxyMeta) : null;
+  const prevRaw = await redis().hget(META, key);
+  const prev = parseMeta(prevRaw);
   const meta: ProxyMeta = {
     protocol: r.protocol,
     ip: r.ip,
@@ -141,9 +153,9 @@ export async function saveAlive(r: CheckResult, geo: GeoInfo | null): Promise<vo
 /** Đánh dấu proxy chết 1 lần. Trả về fail_count mới; nếu >= MAX_FAILS thì xoá hẳn. */
 export async function recordFail(key: string): Promise<{ fails: number; pruned: boolean }> {
   const r = redis();
-  const raw = await r.hget<string>(META, key);
-  if (!raw) return { fails: 0, pruned: false };
-  const meta = JSON.parse(raw) as ProxyMeta;
+  const raw = await r.hget(META, key);
+  const meta = parseMeta(raw);
+  if (!meta) return { fails: 0, pruned: false };
   meta.fail_count += 1;
   meta.last_checked = new Date().toISOString();
   if (meta.fail_count >= MAX_FAILS) {
@@ -204,8 +216,8 @@ export async function getProxies(
   const out: ProxyOut[] = [];
   const wantCC = countryCode?.toUpperCase() ?? null;
   for (const raw of raws) {
-    if (!raw) continue;
-    const m = JSON.parse(raw) as ProxyMeta;
+    const m = parseMeta(raw);
+    if (!m) continue;
     if (m.fail_count !== 0) continue;
     if (wantCC && m.country_code !== wantCC) continue;
     out.push({
@@ -240,21 +252,18 @@ export async function getStats(): Promise<{
     r.zcard(LAT("socks5")),
     r.scard(PENDING),
   ]);
-  const all = (await r.hgetall<Record<string, string>>(META)) ?? {};
+  const all = (await r.hgetall<Record<string, unknown>>(META)) ?? {};
   const byCountry: Record<string, number> = {};
   let sum = 0;
   let cnt = 0;
   for (const raw of Object.values(all)) {
-    try {
-      const m = JSON.parse(raw) as ProxyMeta;
-      if (m.fail_count !== 0) continue;
-      if (m.country_code) byCountry[m.country_code] = (byCountry[m.country_code] ?? 0) + 1;
-      if (m.http_ms != null) {
-        sum += m.http_ms;
-        cnt++;
-      }
-    } catch {
-      /* bỏ qua */
+    const m = parseMeta(raw);
+    if (!m) continue;
+    if (m.fail_count !== 0) continue;
+    if (m.country_code) byCountry[m.country_code] = (byCountry[m.country_code] ?? 0) + 1;
+    if (m.http_ms != null) {
+      sum += m.http_ms;
+      cnt++;
     }
   }
   const top = Object.entries(byCountry)
