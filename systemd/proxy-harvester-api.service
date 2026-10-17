@@ -1,0 +1,17 @@
+[Unit]
+Description=Proxy Harvester JSON API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# SỬA ĐƯỜNG DẪN cho đúng máy của bạn:
+WorkingDirectory=/opt/proxy-harvester
+ExecStart=/opt/proxy-harvester/.venv/bin/python /opt/proxy-harvester/api.py --host 127.0.0.1 --port 8080
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

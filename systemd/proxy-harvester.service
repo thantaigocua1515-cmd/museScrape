@@ -1,0 +1,17 @@
+[Unit]
+Description=Proxy Harvester Monitor (24/7)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# SỬA ĐƯỜNG DẪN cho đúng máy của bạn:
+WorkingDirectory=/opt/proxy-harvester
+ExecStart=/opt/proxy-harvester/.venv/bin/python /opt/proxy-harvester/monitor.py --daemon --interval 1800
+Restart=always
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
